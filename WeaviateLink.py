@@ -1,6 +1,5 @@
 import json
 
-import openai
 import weaviate
 
 from googleapiclient.discovery import build
@@ -8,22 +7,25 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 
 class VectorDB:
-    def __init__(self, weaviate_url, weaviate_key, openai_key):
-        self.db = weaviate.Client(
-            url=weaviate_url,
-            auth_client_secret=weaviate.AuthApiKey(
-                api_key=weaviate_key
-            ),
-            additional_headers={"X-OpenAI-Api-Key": openai_key},
-        )
-        openai.api_key = openai_key
+    def __init__(self, weaviate_url, weaviate_key=None):
+        if weaviate_key is None:
+            self.db = weaviate.Client(
+                url=weaviate_url,
+            )
+        else:
+            self.db = weaviate.Client(
+                url=weaviate_url,
+                auth_client_secret=weaviate.AuthApiKey(
+                    api_key=weaviate_key
+                ),
+            )
         # check if yt classes exist
         if not self.db.schema.exists("YT_large"):
-            with open("YT_large.json", "r") as f:
+            with open("classes/YT_large.json", "r") as f:
                 YT_large = json.load(f)
             self.db.schema.create_class(YT_large)
         if not self.db.schema.exists("YT_small"):
-            with open("YT_small.json", "r") as f:
+            with open("classes/YT_small.json", "r") as f:
                 YT_small = json.load(f)
             self.create_class(YT_small)
 
@@ -31,7 +33,7 @@ class VectorDB:
         if self.db.schema.exists(class_name):
             print(f"{class_name} already exists")
         else:
-            with open("default_class.json", "r") as f:
+            with open("classes/default_class.json", "r") as f:
                 new_class = json.load(f)
             new_class["class"] = class_name
             self.db.schema.create_class(class_name)
