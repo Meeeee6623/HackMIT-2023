@@ -1,0 +1,44 @@
+{
+  "class": "YT_small",
+  "properties": [
+    {
+      "name": "transcriptChunk",
+      "dataType": [
+        "text"
+      ],
+      "description": "The transcript chunk of the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": false,
+          "vectorizePropertyName": false
+        }
+      }
+    },
+    {
+      "name": "timestamp",
+      "dataType": [
+        "number"
+      ],
+      "description": "The timestamp of the text in the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true,
+          "vectorizePropertyName": false
+        }
+      }
+    },
+    {
+      "name": "parentChunk",
+      "dataType": [
+        "text"
+      ],
+      "description": "The ID of the (large) parent chunk in weaviate",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true,
+          "vectorizePropertyName": false
+        }
+      }
+    }
+  ]
+}
