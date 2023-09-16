@@ -1,0 +1,41 @@
+{
+  "class": "video",
+  "properties": [
+    {
+      "name": "description",
+      "dataType": [
+        "text"
+      ],
+      "description": "a description of the topics covered by the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": false
+        }
+      }
+    },
+    {
+      "name": "playlistID",
+      "dataType": [
+        "text"
+      ],
+      "description": "the ID of the playlist that the video is in",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true
+        }
+      }
+    },
+    {
+      "name": "videoID",
+      "dataType": [
+        "text"
+      ],
+      "description": "the ID of the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true
+        }
+      }
+    }
+  ]
+}
