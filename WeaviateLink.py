@@ -34,7 +34,7 @@ class VectorDB:
             "certainty": certainty,
         }
         results = (
-            self.db.data_object.get(class_name="playlist")
+            self.db.data_object.get(class_name="playlist", field_names=["playlistID"])
             .with_near_text(near_text)
             .with_additional("id")
             .do()["data"]["Get"]["playlist"]
