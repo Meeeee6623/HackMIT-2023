@@ -34,7 +34,7 @@ while continue_chat:
 playlistID = db.check_playlist(user_query, certainty=0.8)['playlistID']  # might need gpt call to modify text/search?
 if not playlistID:
     # search yt
-    yt_search = openai.get_yt_search(user_query)  # text search string
+    yt_search = openai.get_yt_search(user_query, conversation)  # text search string
     playlist_list = yt.search_playlists(yt_search)  # format: list of dicts with keys: id, title, description, thumbnail
 
     # get playlist ID - ask user for confirmation
