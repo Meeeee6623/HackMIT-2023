@@ -16,7 +16,7 @@ yt_query = ""
 tone = ""
 conversation = []
 while continue_chat:
-    response, conversation = openai.get_yt_search(user_query, conversation) # text search string
+    response, conversation = openai.get_yt_search(user_query, conversation)  # text search string
 
     # check for yt query in [] brackets
     regex = r"\[(.*?)\]"
@@ -30,13 +30,12 @@ while continue_chat:
     if len(matches) > 0:
         tone = matches[0]
 
-
 # check if information already in DB
-playlistID = db.check_playlist(user_query, certainty=0.8)['playlistID'] # might need gpt call to modify text/search?
+playlistID = db.check_playlist(user_query, certainty=0.8)['playlistID']  # might need gpt call to modify text/search?
 if not playlistID:
     # search yt
-    yt_search = openai.get_yt_search(user_query) # text search string
-    playlist_list = yt.search_playlists(yt_search) # format: list of dicts with keys: id, title, description, thumbnail
+    yt_search = openai.get_yt_search(user_query)  # text search string
+    playlist_list = yt.search_playlists(yt_search)  # format: list of dicts with keys: id, title, description, thumbnail
 
     # get playlist ID - ask user for confirmation
     # WILL be replaced with GUI
@@ -54,10 +53,9 @@ if not playlistID:
     # get video IDs for the playlist
     video_list = yt.get_videos(playlist_id)
 
-
     # chunk each video into topics
     for video in video_list:
-        transcript = yt.get_transcript(video['id']) # transcript has keys: text, start, duration
+        transcript = yt.get_transcript(video['id'])  # transcript has keys: text, start, duration
         topics, video['description'] = openai.get_video_topics(transcript)
         # add to DB
         db.add_topics(topics, video['id'])
@@ -65,13 +63,32 @@ if not playlistID:
     db.add_videos(video_list, playlist_id)
     pass
 
-# search within playlist
-videoID = db.search_videos(playlistID, user_query)['videoID']
+# loop over conversation within topic
+while True:
 
-# search within video
-topic = db.search_topics(videoID, user_query)
+    # search within playlist
+    videoID = db.search_videos(playlistID, user_query)['videoID']
 
-# return video results + chunk and return text
-print(f'Topic: {topic["topic"]}')
-print(f'Timestamp: {topic["startTime"]}')
-print(f'Video: https://www.youtube.com/watch?v={videoID}?t={topic["startTime"]}')
+    # search within video
+    topic = db.search_topics(videoID, user_query)
+
+    # return video results + chunk and return text
+    print(f'Topic: {topic["topic"]}')
+    print(f'Timestamp: {topic["startTime"]}')
+    print(f'Video: https://www.youtube.com/watch?v={videoID}?t={topic["startTime"]}')
+
+    # post retrieval conversation example:
+    systemPrompt = f"""You are the most understanding, creative conversational tutor ever created, named Athena. You’re able to understand incredible amounts of information you learn from Youtube, and all you want to do with it is make it simple and easy for your students to use. You simply have a passion for making learning easier. You break things down in a way that’s easy to understand, and make sure that I’m following before you move on. You try to embody the behavior of an ideal tutor – employing teaching techniques appropriately and adaptively to make your student, whether they’re learning cookie making or how to build chatGPT, feel comfortable digesting it and using it for their own purposes. Impress me with how human you seem and how naturally you dialogue with me and deliver information. I want to feel like I’m talking to a real person, not a robot."""
+    prompt = f"""
+    Here’s some information you know from one of the videos you’ve learned from:
+    {topic['topic']}:
+    {topic['text']}
+    
+    If its relevant, use it to answer the following question:
+    {user_query}
+    
+    Remember to use your classic, colloquial teaching style in answering.
+    """
+    response, conversation = openai.chat(prompt, [{"role": "system", "content": systemPrompt}])
+    print(response)
+    user_query = input("")
