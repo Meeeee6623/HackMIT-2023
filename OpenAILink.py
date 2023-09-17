@@ -62,7 +62,21 @@ class OpenAI_Connector:
             engine="gpt-3.5-turbo-16k",
             prompt=prompt,
         )
-        return response.choices[0]["message"]["content"]
+        topics_raw = response.choices[0]["message"]["content"]
+        # parse topics
+        topics = []
+        for topic in topics_raw.split("[TOPIC:")[1:]:
+            if topic != "":
+                topic = topic.split("]")
+                timestamp = topic[1].split("s")[0]
+                topics.append({
+                    "topic": topic[0],
+                    "text": topic[1],
+                    "startTime": timestamp
+                })
+        search = topics_raw.split("[SEARCH]")[1].split("[TOPIC:")[0]
+
+        return topics, search
 
     def get_video_description(self, video_title, video_description):
         """

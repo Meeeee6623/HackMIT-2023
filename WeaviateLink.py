@@ -90,6 +90,7 @@ class VectorDB:
                 batch.add_data_object(
                     data_object={
                         "topic": topic['topic'],
+                        "text": topic['text'],
                         "startTime": topic['startTime'],
                         "videoID": videoID,
                     },
