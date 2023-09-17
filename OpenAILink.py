@@ -6,18 +6,14 @@ class OpenAI_Connector:
         openai.api_key = api_key
         openai.api_base = "https://api.openai.com/v1"
 
-    def get_yt_search(self, user_query):
+    def get_yt_search(self, user_query, conversation):
         prompt = f"""You're going to talk to me and see what I'd like you to become a tutor of. You're a system called Athena, that can learn to become a tutor on any set of knowledge by going to find the best Youtube playlists on it, watching them, and using them to help me. Use this conversation to decide what I know about the topic I'm interested in, etc.. You're not going to teach me here, your job is to find out exactly the type of thing I want to learn.  Alternatively, if I say I know exactly what I want, just let me commence the search.
         When you think you know what the student wants you to learn about, you'll follow these instructions:
         You are going to translate student's tutoring intent into Youtube searches that will bring up the most helpful playlists for that topic. For example, if our conversation so far has discussed that I want to know how to budget and I'm a beginner you might respond with "[Budgeting 101]". You'll respond only with this format [ (insert the the youtube search here) ]. Once you sent the [] wrapped Youtube Search there's no going back, I won't even see that message, as the system will pick up that this conversation is over. Double check before you send this message that I agree with you about what you'll be learning.  You're also going to output in * *  the behavioral instructions for the AI taking notes on the video on behalf of the student, specifying what to look for, to be concise and focus on whole pieces of knowledge. For example, *You're going to take detailed technical notes on what's required to code chatGPT in a python notebook, what kinds of data are used, and the process of building as a whole.*
         User Input:
         {user_query}"""
-
-        response = openai.ChatCompletion.create(
-            engine="gpt-3.5-turbo",
-            prompt=prompt,
-        )
-        return response.choices[0]["message"]["content"]
+        response, conversation = self.chat(user_query, conversation)
+        return response, conversation
 
     def get_video_topics(self, video_transcript):
         """

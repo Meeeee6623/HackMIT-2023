@@ -1,4 +1,5 @@
 import os
+import re
 
 from WeaviateLink import VectorDB
 from OpenAILink import OpenAI_Connector
@@ -9,7 +10,27 @@ openai = OpenAI_Connector(os.environ['OPENAI_API_KEY'])
 yt = YoutubeConnector(os.environ['YOUTUBE_API_KEY'])
 
 # input from user
-user_query = input("Welcome to Athena. What would you like to learn about today?\n")
+user_query = input("Hey, I'm Athena! I can teach you anything on the internet. What do you want to learn?")
+continue_chat = True
+yt_query = ""
+tone = ""
+conversation = []
+while continue_chat:
+    response, conversation = openai.get_yt_search(user_query, conversation) # text search string
+
+    # check for yt query in [] brackets
+    regex = r"\[(.*?)\]"
+    matches = re.findall(regex, response)
+    if len(matches) > 0:
+        continue_chat = False
+        yt_query = matches[0]
+    # check for tone behavior in ** brackets
+    regex = r"\*\*(.*?)\*\*"
+    matches = re.findall(regex, response)
+    if len(matches) > 0:
+        tone = matches[0]
+
+
 # check if information already in DB
 playlistID = db.check_playlist(user_query, certainty=0.8)['playlistID'] # might need gpt call to modify text/search?
 if not playlistID:
