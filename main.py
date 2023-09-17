@@ -1,11 +1,9 @@
 import modal
 from modal import Image, Mount, Stub, asgi_app, gpu, method
 from pathlib import Path
-from pydantic import BaseModel
 
 import os
 import re
-
 
 
 image = modal.Image.debian_slim().pip_install(
@@ -25,8 +23,6 @@ stub = modal.Stub("yt-search")
         modal.Mount.from_local_python_packages("WeaviateLink"),
         modal.Mount.from_local_python_packages("YouTubeLink"),
         modal.Mount.from_local_python_packages("OpenAILink"),
-
-
         modal.Mount.from_local_dir(
             "frontend",
             remote_path="/root/frontend",
@@ -48,21 +44,17 @@ def app():
     openai = OpenAI_Connector(os.environ["OPENAI_API_KEY"])
     yt = YoutubeConnector(os.environ["YOUTUBE_API_KEY"])
 
-
-
     conversation = []
-
 
     web_app = FastAPI()
 
-
     @web_app.post("/ask/{query}")
     async def ask(query: str):
+        global conversation
         # Initialize the variables
         yt_query = ""
         tone = ""
 
-    
         # Get the response from the chatbot
         response, conversation = openai.get_yt_search(query, conversation)
 
@@ -79,51 +71,104 @@ def app():
         if len(matches) > 0:
             tone = matches[0]
 
-        return {"reply": response, "yt_query": yt_query, "tone": tone}
+        return {
+            "reply": response,
+            "yt_query": yt_query,
+            "tone": tone,
+        }  # for js side just display response if yt_query and tone are empty
 
-
-
-    @web_app.get("/train/{playlist}")
-    async def train_chatbot(playlist: str):
-        # Logic from yt-chain.py goes here
-        # For example:
-        playlistID = db.check_playlist(playlist, certainty=0.8)["playlistID"]
+    # This endpoint is responsible for searching for playlists.
+    # It is only called from JavaScript if the YouTube query is not empty.
+    @web_app.post("/search/{user_query}/{yt_query}")  # returns dict of playlists
+    async def search(user_query: str, yt_query: str):
+        # check if information already in DB
+        playlistID = db.check_playlist(user_query, certainty=0.8)[
+            "playlistID"
+        ]  # might need gpt call to modify text/search?
         if not playlistID:
             # search yt
-            yt_search = openai.get_yt_search(playlist)
-            playlist_list = yt.search_playlists(yt_search)
-            # ... and so on
-        return {"message": f"Training started with {playlist}"}
+            # yt_search = openai.get_yt_search(user_query, conversation)  # text search string
+            playlist_list = yt.search_playlists(
+                yt_query
+            )  # format: list of dicts with keys: id, title, description, thumbnail
+        return {
+            "playlists": playlist_list,
+            "id": playlistID,
+        }  # js side should display playlists  and pass the playlist that is clicked to the search function if id is empty, else dont display the playlist just store the id and call the chat funciton wiht the id
 
-    @web_app.get("/chat/{query}")
-    async def chat(query: str):
-        # Logic from yt-chain.py goes here
-        # For example:
-        videoID = db.search_videos(playlistID, query)['videoID']
-        topic = db.search_topics(videoID, query)
-            # Select the first playlist from the search results
-            selected_playlist = playlist_list[0]
-            # Get the playlist ID
-            playlistID = selected_playlist['id']
-            # Save the playlist to the database
-            db.save_playlist(playlistID, selected_playlist)
-        return {"reply": reply}
+    @web_app.post("/scrape/{playlist_ID_input}/{playlist_list}")
+    async def scrape(playlist_ID_input: str, playlist_list: str):
+        # Parse the playlist list into a Python object
+        playlist_list = json.loads(playlist_list)
 
-    @web_app.get("/infer/{prompt}")
-    async def infer(prompt: str):
-        return {f"message": "{prompt}"}
+        # Find the correct playlist object
+        playlist = next(
+            (
+                playlist
+                for playlist in playlist_list
+                if playlist["id"] == playlist_ID_input
+            ),
+            None,
+        )
+
+        if not playlist:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+
+        # Get playlist description and add to database
+        description = openai.get_playlist_search(
+            playlist["title"], playlist["description"]
+        )
+        db.add_playlist(playlist_ID_input, playlist["title"], description)
+
+        # Get video IDs for the playlist
+        video_list = yt.get_videos(playlist_ID_input)
+
+        # Chunk each video into topics
+        for video in video_list:
+            transcript = yt.get_transcript(
+                video["id"]
+            )  # transcript has keys: text, start, duration
+            topics, video["description"] = openai.get_video_topics(transcript)
+
+            # Add topics to DB
+            db.add_topics(topics, video["id"])
+
+        # Upload videos to Weaviate
+        db.add_videos(video_list, playlist_ID_input)
+
+    @web_app.post("/chat/{playlistID}/{user_query}")
+    async def chat(playlistID: str, user_query: str):
+        # search within playlist
+        videoID = db.search_videos(playlistID, user_query)["videoID"]
+
+        # search within video
+        topic = db.search_topics(videoID, user_query)
+
+        # post retrieval conversation example:
+        systemPrompt = f"""You are the most understanding, creative conversational tutor ever created, named Athena. You’re able to understand incredible amounts of information you learn from Youtube, and all you want to do with it is make it simple and easy for your students to use. You simply have a passion for making learning easier. You break things down in a way that’s easy to understand, and make sure that I’m following before you move on. You try to embody the behavior of an ideal tutor – employing teaching techniques appropriately and adaptively to make your student, whether they’re learning cookie making or how to build chatGPT, feel comfortable digesting it and using it for their own purposes. Impress me with how human you seem and how naturally you dialogue with me and deliver information. I want to feel like I’m talking to a real person, not a robot."""
+        prompt = f"""
+            Here’s some information you know from one of the videos you’ve learned from:
+            {topic['topic']}:
+            {topic['text']}
+            
+            If its relevant, use it to answer the following question:
+            {user_query}
+            
+            Remember to use your classic, colloquial teaching style in answering.
+            """
+        response, conversation = openai.chat(
+            prompt, [{"role": "system", "content": systemPrompt}]
+        )  # todo should we pass converstaion in?
+
+        # return video results + chunk and return text
+        return {
+            "topic": topic["topic"],
+            "timestamp": topic["startTime"],
+            "video": f'https://www.youtube.com/watch?v={videoID}?t={topic["startTime"]}',
+            "response": response,
+        }
 
     web_app.mount(
         "/", fastapi.staticfiles.StaticFiles(directory=str(frontend_path), html=True)
     )
     return web_app
-
-
-def get_info(query, conversation):
-    
-
-def setup():
-    db = VectorDB("http://44.209.9.231:8080")
-    openai = OpenAI_Connector(os.environ["OPENAI_API_KEY"])
-    yt = YoutubeConnector(os.environ["YOUTUBE_API_KEY"])
-
