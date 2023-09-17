@@ -37,12 +37,18 @@ class VectorDB:
     def check_playlist(self, query, certainty):
         near_text = {
             "concepts": [query],
-            "certainty": certainty,
         }
-        results = self.db.data_object.get(
-            near_text=near_text,
-            class_name="playlist",
-        ).do()["data"]["Get"]["playlist"]
+        where_filter = {
+            "path": ["certainty"],
+            "operator": "GreaterThan",
+            "valueFloat": certainty,
+        }
+        results = (
+            self.db.data_object.get(class_name="playlist")
+            .with_where(where_filter)
+            .with_near_text(near_text)
+            .do()["data"]["Get"]["playlist"]
+        )
         if len(results) > 0:
             return results[0]
         else:

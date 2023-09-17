@@ -45,17 +45,17 @@ def app():
     openai = OpenAI_Connector(os.environ["OPENAI_API_KEY"])
     yt = YoutubeConnector(os.environ["YOUTUBE_API_KEY"])
 
-    conversation = []
-
     web_app = FastAPI()
 
-    @web_app.post("/ask/{query}")
-    async def ask(query: str):
-        global conversation
+    @web_app.get("/ask/{query}/{conversation}}")
+    async def ask(query: str, conversation: str):
         # Initialize the variables
         yt_query = ""
         tone = ""
-
+        try:
+            conversation = json.loads(conversation)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid conversation format")
         # Get the response from the chatbot
         response, conversation = openai.get_yt_search(query, conversation)
 
@@ -80,7 +80,7 @@ def app():
 
     # This endpoint is responsible for searching for playlists.
     # It is only called from JavaScript if the YouTube query is not empty.
-    @web_app.post("/search/{user_query}/{yt_query}")  # returns dict of playlists
+    @web_app.get("/search/{user_query}/{yt_query}")  # returns dict of playlists
     async def search(user_query: str, yt_query: str):
         # check if information already in DB
         playlistID = db.check_playlist(user_query, certainty=0.8)[
@@ -97,7 +97,7 @@ def app():
             "id": playlistID,
         }  # js side should display playlists  and pass the playlist that is clicked to the search function if id is empty, else dont display the playlist just store the id and call the chat funciton wiht the id
 
-    @web_app.post("/scrape/{playlist_ID_input}/{playlist_list}")
+    @web_app.get("/scrape/{playlist_ID_input}/{playlist_list}")
     async def scrape(playlist_ID_input: str, playlist_list: str):
         # Parse the playlist list into a Python object
         playlist_list = json.loads(playlist_list)
@@ -137,7 +137,7 @@ def app():
         # Upload videos to Weaviate
         db.add_videos(video_list, playlist_ID_input)
 
-    @web_app.post("/chat/{playlistID}/{user_query}")
+    @web_app.get("/chat/{playlistID}/{user_query}")
     async def chat(playlistID: str, user_query: str):
         # search within playlist
         videoID = db.search_videos(playlistID, user_query)["videoID"]

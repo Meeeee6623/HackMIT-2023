@@ -41,12 +41,16 @@
             return {
                 userMessage: "",
                 messages: [],
+                conversation: [],
                 async sendMessage() {
                     try {
-                        const response = await fetch(`/ask/${this.userMessage}`, {
+                        const response = await fetch(`/ask/${this.userMessage}/${JSON.stringify(this.conversation)}`, {
                             method: 'GET',
                         });
+                        this.conversation.push({role: "user", content: this.userMessage});
+
                         const data = await response.json();
+                        this.conversation.push({role: "assistant", content: data.reply});
                         this.messages.push(this.userMessage);
                         
                         if (data.yt_query !== "") {
