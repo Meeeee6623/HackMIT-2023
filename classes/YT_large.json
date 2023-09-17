@@ -1,0 +1,67 @@
+{
+  "class": "YT_large",
+  "properties": [
+    {
+      "name": "transcriptChunk",
+      "dataType": [
+        "text"
+      ],
+      "description": "The transcript chunk of the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": false,
+          "vectorizePropertyName": false
+        }
+      }
+    },
+    {
+      "name": "videoID",
+      "dataType": [
+        "text"
+      ],
+      "description": "The ID of the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true,
+          "vectorizePropertyName": false
+        }
+      }
+    },
+    {
+      "name": "startTime",
+      "dataType": [
+        "number"
+      ],
+      "description": "The start time of the chunk in the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true
+        }
+      }
+    },
+    {
+      "name": "duration",
+      "dataType": [
+        "number"
+      ],
+      "description": "The duration of the chunk in the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true
+        }
+      }
+    },
+    {
+      "name": "playlistID",
+      "dataType": [
+        "text"
+      ],
+      "description": "The ID of the playlist that the video is in",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "class": "Default_Chunk",
+  "properties": [
+    {
+      "dataType": [
+        "text"
+      ],
+      "description": "Chunks of Text"
+    }
+  ]
+}

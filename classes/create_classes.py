@@ -10,55 +10,33 @@ default_schema = {
     ]
 }
 
-large_chunk_schema = {
-    "class": "YT_large",
+playlist_schema = {
+    "class": "playlist",
     "properties": [
         {
-            "name": "transcriptChunk",
+            "name": "title",
             "dataType": ["text"],
-            "description": "The transcript chunk of the video",
+            "description": "the title of the playlist",
             "moduleConfig": {
                 "text2vec-openai": {
                     "skip": False,
-                    "vectorizePropertyName": False,
                 }
             }
         },
         {
-            "name": "videoID",
+            "name": "description",
             "dataType": ["text"],
-            "description": "The ID of the video",
+            "description": "a description of the topics covered by the playlist",
             "moduleConfig": {
                 "text2vec-openai": {
-                    "skip": True,
-                    "vectorizePropertyName": False,
-                }
-            }
-        },
-        {
-            "name": "startTime",
-            "dataType": ["number"],
-            "description": "The start time of the chunk in the video",
-            "moduleConfig": {
-                "text2vec-openai": {
-                    "skip": True,
-                }
-            }
-        },
-        {
-            "name": "duration",
-            "dataType": ["number"],
-            "description": "The duration of the chunk in the video",
-            "moduleConfig": {
-                "text2vec-openai": {
-                    "skip": True,
+                    "skip": False,
                 }
             }
         },
         {
             "name": "playlistID",
             "dataType": ["text"],
-            "description": "The ID of the playlist that the video is in",
+            "description": "the ID of the playlist",
             "moduleConfig": {
                 "text2vec-openai": {
                     "skip": True,
@@ -68,53 +46,96 @@ large_chunk_schema = {
     ]
 }
 
-small_chunk_schema = {
-    "class": "YT_small",
+video_schema = {
+    "class": "video",
     "properties": [
         {
-            "name": "transcriptChunk",
+            "name": "title",
             "dataType": ["text"],
-            "description": "The transcript chunk of the video",
+            "description": "the title of the video",
             "moduleConfig": {
                 "text2vec-openai": {
                     "skip": False,
-                    "vectorizePropertyName": False,
                 }
             }
         },
         {
-            "name": "timestamp",
-            "dataType": ["number"],
-            "description": "The timestamp of the text in the video",
-            "moduleConfig": {
-                "text2vec-openai": {
-                    "skip": True,
-                    "vectorizePropertyName": False,
-                }
-            }
-        },
-        {
-            "name": "parentChunk",
+            "name": "description",
             "dataType": ["text"],
-            "description": "The ID of the (large) parent chunk in weaviate",
+            "description": "a description of the topics covered by the video",
+            "moduleConfig": {
+                "text2vec-openai": {
+                    "skip": False,
+                }
+            }
+        },
+        {
+            "name": "playlistID",
+            "dataType": ["text"],
+            "description": "the ID of the playlist that the video is in",
             "moduleConfig": {
                 "text2vec-openai": {
                     "skip": True,
-                    "vectorizePropertyName": False,
                 }
             }
-        }
+        },
+        {
+            "name": "videoID",
+            "dataType": ["text"],
+            "description": "the ID of the video",
+            "moduleConfig": {
+                "text2vec-openai": {
+                    "skip": True,
+                }
+            }
+        },
     ]
 }
 
+topic_schema = {
+    "class": "topic",
+    "properties": [
+        {
+            "name": "topic",
+            "dataType": ["text"],
+            "description": "the topic of the portion of the video",
+        },
+        {
+            "name": "text",
+            "dataType": ["text"],
+            "description": "the text of the portion of the video relating to the topic",
+        },
+        {
+            "name": "videoID",
+            "dataType": ["text"],
+            "description": "the ID of the video",
+            "moduleConfig": {
+                "text2vec-openai": {
+                    "skip": True,
+                }
+            }
+        },
+        {
+            "name": "startTime",
+            "dataType": ["number"],
+            "description": "the start time of the topic in the video",
+            "moduleConfig": {
+                "text2vec-openai": {
+                    "skip": True,
+                }
+            }
+        }
+
+    ]
+}
+
+
 # dump to file
-with open("YT_large.json", "w") as f:
-    json.dump(large_chunk_schema, f, indent=2)
+with open("playlist.json", "w") as f:
+    json.dump(playlist_schema, f, indent=2)
 
-with open("YT_small.json", "w") as f:
-    json.dump(small_chunk_schema, f, indent=2)
+with open("video.json", "w") as f:
+    json.dump(video_schema, f, indent=2)
 
-with open("default_class.json", "w") as f:
-    json.dump(default_schema, f, indent=2)
-
-
+with open("topic.json", "w") as f:
+    json.dump(topic_schema, f, indent=2)

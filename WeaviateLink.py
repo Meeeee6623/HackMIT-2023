@@ -7,7 +7,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 
 class VectorDB:
-    def __init__(self, weaviate_url, weaviate_key=None):
+    def __init__(self, weaviate_url, weaviate_key=None, youtube_key=None):
         if weaviate_key is None:
             self.db = weaviate.Client(
                 url=weaviate_url,
@@ -18,272 +18,154 @@ class VectorDB:
                 auth_client_secret=weaviate.AuthApiKey(api_key=weaviate_key),
             )
         # check if yt classes exist
-        if not self.db.schema.exists("YT_large"):
-            with open("/classes/YT_large.json", "r") as f:
-                YT_large = json.load(f)
-            self.db.schema.create_class(YT_large)
-        if not self.db.schema.exists("YT_small"):
-            with open("/classes/YT_small.json", "r") as f:
-                YT_small = json.load(f)
-            self.create_class(YT_small)
 
-    def create_class(self, class_name):
-        if self.db.schema.exists(str(class_name)):
-            print(f"{class_name} already exists")
+        if not self.db.schema.exists("playlist"):
+            with open("./classes/playlist.json", "r") as f:
+                playlist = json.load(f)
+            self.db.schema.create_class(playlist)
+        if not self.db.schema.exists("video"):
+            with open("./classes/video.json", "r") as f:
+                video = json.load(f)
+            self.db.schema.create_class(video)
+        if not self.db.schema.exists("topic"):
+            with open("./classes/topic.json", "r") as f:
+                topic = json.load(f)
+            self.db.schema.create_class(topic)
+
+        self.youtube = build("youtube", "v3", developerKey=youtube_key)
+
+    def check_playlist(self, query, certainty):
+        near_text = {
+            "concepts": [query],
+            "certainty": certainty,
+        }
+        results = self.db.data_object.get(
+            near_text=near_text,
+            class_name="playlist",
+        ).do()["data"]["Get"]["playlist"]
+        if len(results) > 0:
+            return results[0]
         else:
-            with open("/classes/default_class.json", "r") as f:
-                new_class = json.load(f)
-            new_class["class"] = class_name
-            self.db.schema.create_class(class_name)
+            return False
 
-    def add_playlist(self, playlistID, chunk_length=300, yt_api_key=None):
+    def add_videos(self, video_list, playlist_id):
         """
-        Adds a playlist to the database in large chunks
-        :param playlistID: id of the playlist to add
-        :param chunk_length: length of each chunk in characters
-        :param yt_api_key: YouTube api key
+        Adds videos from the playlist to the database
+        :param video_list: list of video information to add, with params title, description, id
+        :param playlist_id: id of the playlist that the videos are from
         :return:
         """
-        # check if playlist already in db
-        where_filter = {
-            "path": ["playlistID"],
-            "operator": "Equal",
-            "valueText": f"{playlistID}",
-        }
-        playlist = (
-            self.db.query.get("YT_large", ["playlistID"])
-            .with_where(where_filter)
-            .do()["data"]["Get"]["YT_large"]
-        )
-        if len(playlist) > 0:
-            # playlist already in db
-            print(f"playlist {playlistID} already in db, skipping")
-            return
-        print(f"uploading playlist: {playlistID}")
-        # get video IDs
-        youtube = build("youtube", "v3", developerKey=yt_api_key)
-        response = (
-            youtube.playlistItems()
-            .list(part="contentDetails", playlistId=playlistID, maxResults=50)
-            .execute()
-        )
-        video_ids = []
 
-        for t in response["items"]:
-            print(t["contentDetails"]["videoId"])
-            video_ids.append(t["contentDetails"]["videoId"])
-
-        # get transcripts
-
-        for videoID in video_ids:
-            # check if video already in db
-            where_filter = {
-                "path": ["videoID"],
-                "operator": "Equal",
-                "valueText": f"{videoID}",
-            }
-            video = (
-                self.db.query.get("YT_large", ["videoID"])
-                .with_where(where_filter)
-                .do()["data"]["Get"]["YT_large"]
-            )
-            if len(video) > 0:
-                # video already in db
-                print(f"video {videoID} already in db, skipping")
-                continue
-            transcript = YouTubeTranscriptApi.get_transcript(videoID, languages=["en"])
-            # chunk into chunk_length size chunks
-            large_chunks = []
-            chunk = ""
-            duration = 0
-            for i, t in enumerate(transcript):
-                if len(chunk) + len(t["text"]) > chunk_length:
-                    large_chunks.append(
-                        {
-                            "text": chunk,
-                            "start": float(t["start"]),
-                            "duration": float(duration),
-                        }
-                    )
-                    print(large_chunks[-1])
-                    chunk = t["text"]
-                    duration = float(t["duration"])
-                chunk += t["text"]
-                duration += float(t["duration"])
-
-            # upload to weaviate
-            # batch add chunks to db
-
-            with self.db.batch(
+        # batch add videos to db
+        with self.db.batch(
                 batch_size=20,
                 num_workers=4,
                 dynamic=True,
-            ) as batch:
-                for i, chunk in enumerate(large_chunks):
-                    batch.add_data_object(
-                        data_object={
-                            "transcriptChunk": chunk["text"],
-                            "playlistID": playlistID,
-                            "startTime": chunk["start"],
-                            "videoID": videoID,
-                            "duration": chunk["duration"],
-                        },
-                        class_name="YT_large",
-                    )
-            print(f"added {len(large_chunks)} large chunks")
+        ) as batch:
+            for video in video_list:
+                batch.add_data_object(
+                    data_object={
+                        "title": video['title'],
+                        "description": video['description'],
+                        "playlistID": playlist_id,
+                        "videoID": video['id'],
+                    },
+                    class_name="video",
+                )
 
-    def add_small_chunks(self, videoID, parentID, startTime, duration):
+    def add_topics(self, topics, videoID):
         """
-        Adds small chunks to the database for a given video
-        Args:
-            videoID: id of the video that the chunks are from
-            parentID: id of the parent chunk associated with the small chunks
-            startTime: where the parent chunk starts in the video
-            duration: how long the parent chunk is
+        Adds topics from the video to the database
+        :param topics: list of topics to add, with fields: topic, startTime
+        :param videoID: ID of the video that the topics are from
+        :return:
         """
-        # get transcript
-        transcript = YouTubeTranscriptApi.get_transcript(
-            video_id=videoID, languages=["en"]
-        )
-        # chunk into 2-wide chunks within the large chunk window
-        small_chunks = []
-        chunk = ""
-        for i, t in enumerate(transcript):
-            # append small chunks (2 transcript bits long)
-            if t["start"] < startTime:
-                pass
-            elif t["start"] > startTime + duration:
-                break
-            if not i + 2 >= len(transcript):
-                chunk = transcript[i]["text"] + transcript[i + 1]["text"]
-                small_chunks.append({"text": chunk, "start": float(t["start"])})
-        # batch upload to weaviate
+
+        # batch add topics to db
         with self.db.batch(
             batch_size=20,
             num_workers=4,
             dynamic=True,
         ) as batch:
-            for small_chunk in small_chunks:
+            for topic in topics:
                 batch.add_data_object(
                     data_object={
-                        "transcriptChunk": small_chunk["text"],
-                        "timestamp": small_chunk["start"],
-                        "parentChunk": parentID,
+
+                        "topic": topic['topic'],
+                        "text": topic['text'],
+                        "startTime": topic['startTime'],
+                        "videoID": videoID,
                     },
-                    class_name="YT_small",
+                    class_name="topic",
                 )
+        pass
 
-    def query_yt_coarse(self, query, playlistID=None):
+    def add_playlist(self, playlist_id, title, description):
         """
-        Queries the large chunks of the YouTube database for a given query
-        :param query: string to search for
-        :param playlistID: (optional) playlist to search within
-        :return: large chunk ID, certainty
+        Adds playlist to the database
+        :param playlist_id: ID of the playlist
+        :param title: title of the playlist
+        :param description: playlist description
+        :return:
         """
-        if playlistID is not None:
-            where_filter = {
-                "path": ["playlistID"],
-                "operator": "Equal",
-                "valueText": f"{playlistID}",
-            }
-            large_chunks = (
-                self.db.query.get(
-                    "YT_large", ["transcriptChunk", "videoID", "startTime", "duration"]
-                )
-                .with_where(where_filter)
-                .with_near_text({"concepts": [query]})
-                .with_additional(["id", "certainty"])
-                .do()["data"]["Get"]["YT_large"]
-            )
 
-        else:
-            large_chunks = (
-                self.db.query.get(
-                    "YT_large", ["transcriptChunk", "videoID", "startTime", "duration"]
-                )
-                .with_near_text({"concepts": [query]})
-                .with_additional(["id", "certainty"])
-                .do()["data"]["Get"]["YT_large"]
-            )
-
-        if len(large_chunks) == 0:
-            return None, None, None, None, None
-        # get the best match
-        return (
-            large_chunks[0]["_additional"]["id"],
-            large_chunks[0]["_additional"]["certainty"],
-            large_chunks[0]["videoID"],
-            large_chunks[0]["startTime"],
-            large_chunks[0]["duration"],
+        self.db.data_object.create(
+            data_object={
+                "title": title,
+                "description": description,
+                "playlistID": playlist_id,
+            },
+            class_name="playlist",
         )
 
-    def query_yt_fine(
-        self, query, parentID, videoID, startTime, duration, vectorStrength=0.5
-    ):
+    def search_videos(self, playlistID, user_query):
         """
-        Queries the small chunks of the YouTube database for a given query
-        :param query: text to search for
-        :param chunkID: ID of large (parent) chunk
-        :param vectorStrength: strength of vector search
-                :return: videoID, timestamp
+        Searches for videos in a playlist
+        :param playlistID: the ID of the playlist to search in
+        :param user_query: the query to search for
+        :return:
         """
-        # check if small chunks exist
-        where_filter = {
-            "path": ["parentChunk"],
-            "operator": "Equal",
-            "valueText": f"{parentID}",
+        near_text = {
+            "concepts": [user_query],
         }
-        small_chunks = (
-            self.db.query.get("YT_small", ["transcriptChunk", "timestamp"])
-            .with_where(where_filter)
-            .with_hybrid(
-                query=query, properties=["transcriptChunk"], alpha=vectorStrength
-            )
-            .do()["data"]["Get"]["YT_small"]
+        where_filter = {
+            "path": ["playlistID"],
+            "operator": "Equal",
+            "valueString": playlistID,
+        }
+
+        results = (self.db.data_object
+        .get(class_name="video", field_names=["title", "description", "videoID"])
+        .with_where(where_filter)
+        .with_near_text(near_text)
+        .do()["data"]["Get"]['video']
         )
+        if len(results) > 0:
+            return results[0]
+        else:
+            return False
 
-        if not small_chunks:
-            # no small chunks exist
-            print(f"adding small chunks for {videoID}")
-            self.add_small_chunks(videoID, parentID, startTime, duration)
-            # search again
-            small_chunks = (
-                self.db.query.get("YT_small", ["transcriptChunk", "timestamp"])
-                .with_where(where_filter)
-                .with_hybrid(
-                    query=query, properties=["transcriptChunk"], alpha=vectorStrength
-                )
-                .do()["data"]["Get"]["YT_small"]
-            )
-        # get video id
-        video_id = videoID
-        # get timestamp
-        timestamp = small_chunks[0]["timestamp"]
-        return video_id, timestamp
-
-    def query_yt_full(self, query, playlistID=None):
+    def search_topics(self, videoID, user_query):
         """
-        Queries the YouTube database for a given query
-        :param query: string to search for
-        :param playlistID: (optional) playlist to search within
-        :return: Best video match for the query (dict) with videoID, timestamp
+        Searches for topics in a video
+        :param videoID: ID of the video to search in
+        :param user_query: query to search for
+        :return:
         """
-        # upload playlist if not already in db
-        if playlistID is not None:
-            self.add_playlist(playlistID)
-
-        # coarse search
-        chunkID, certainty = self.query_yt_coarse(query, playlistID)
-
-        # fine search
-        if chunkID is not None:
-            return self.query_yt_fine(query, chunkID, certainty)
-
-        # no match found
-        return None, None
-
-    def add_website(self, website_url):
-        pass
-
-    def query_website(self, query, website_url):
-        pass
+        near_text = {
+            "concepts": [user_query],
+        }
+        where_filter = {
+            "path": ["videoID"],
+            "operator": "Equal",
+            "valueString": videoID,
+        }
+        results = (self.db.data_object
+        .get(class_name="topic", field_names=["topic", "startTime"])
+        .with_where(where_filter)
+        .with_near_text(near_text)
+        .do()["data"]["Get"]["topic"])
+        if len(results) > 0:
+            return results[0]
+        else:
+            return False
