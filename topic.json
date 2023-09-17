@@ -1,0 +1,43 @@
+{
+  "class": "Topic",
+  "properties": [
+    {
+      "name": "topic",
+      "dataType": [
+        "text"
+      ],
+      "description": "the topic of the portion of the video"
+    },
+    {
+      "name": "text",
+      "dataType": [
+        "text"
+      ],
+      "description": "the text of the portion of the video relating to the topic"
+    },
+    {
+      "name": "videoID",
+      "dataType": [
+        "text"
+      ],
+      "description": "the ID of the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true
+        }
+      }
+    },
+    {
+      "name": "startTime",
+      "dataType": [
+        "number"
+      ],
+      "description": "the start time of the topic in the video",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true
+        }
+      }
+    }
+  ]
+}

@@ -22,19 +22,16 @@
             <textarea x-model="userMessage" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3" id="message" rows="4" placeholder="Write a message"></textarea>
         </div>
 
-        <button x-show="!isChoosingPlaylist" @click="sendMessage()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-4">
+        <button @click="sendMessage()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-4">
             Send Message
-        </button>
-        
-        <button x-show="isChoosingPlaylist" @click="choosePlaylist()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4">
-            Choose Playlist
         </button>
 
         <div class="border-t pt-4 bg-gradient-to-r from-green-400 to-blue-500" id="chat-box">
             <template x-for="(message, index) in messages">
-                <div :class="{'flex justify-end': message.role === 'user', 'flex justify-start': message.role === 'assistant'}">
+                //TODO change this to user or assistant instead of mod 2
+                <div :class="{'text-right': index % 2 === 0, 'text-left': index % 2 !== 0}">
                     <div class="inline-block bg-white text-gray-800 rounded-lg px-4 py-2 mb-4 shadow-md prose prose-sm">
-                        <p x-text="message.content"></p>
+                        <p x-text="message"></p>
                     </div>
                 </div>
             </template>
@@ -46,8 +43,6 @@
                 userMessage: "",
                 messages: [],
                 conversation: [],
-                isChoosingPlaylist: false,
-                playlists: [],
                 async sendMessage() {
                     try {
                         const response = await fetch(`/ask/${this.userMessage}/${JSON.stringify(this.conversation)}`, {
@@ -59,58 +54,38 @@
                         this.conversation.push({role: "assistant", content: data.reply});
                         // push an object instead with role + type
                         // text, yt 
-                        this.messages.push({role: "user", content: this.userMessage});
-
+                        this.messages.push(this.userMessage);
                         
                         if (data.yt_query !== "") {
-                            const searchResponse = await fetch(`/search/${data.yt_query}`, {
+                            const searchResponse = await fetch(`/search/${this.userMessage}/${data.yt_query}`, {
                                 method: 'GET',
                             });
                             const searchData = await searchResponse.json();
-               
-                                playlists = searchData.playlists;
-                                // Format the playlists into a chatbot response
-                                let playlistResponse = "Here are some playlists I found:\n";
-                                searchData.playlists.forEach((playlist, index) => {
-                                    playlistResponse += `${index + 1}. ${playlist.title}\n`;
+                
+                            if (searchData.id === "") {
+                                const scrapeResponse = await fetch(`/scrape/${searchData.id}/${JSON.stringify(searchData.playlists)}`, {
+                                    method: 'GET',
                                 });
-                                playlistResponse += "Please choose a playlist by typing its number.";
-
-                                this.messages.push({role: "assistant", content: playlistResponse});
+                                const scrapeData = await scrapeResponse.json();
                                 // 1,2,3
                                 // switch botton 
-                                isChoosingPlaylist = true;
-
-                              
+                                this.messages.push(scrapeData.message);
+                            } else {
+                                const chatResponse = await fetch(`/chat/${searchData.id}/${this.userMessage}`, {
+                                    method: 'GET',
+                                });
+                                const chatData = await chatResponse.json();
+                                this.messages.push(chatData.response);
+                                this.messages.push(`Video: ${chatData.video}`);
                             }
-                        
-                            this.messages.push({role: "assistant", content: data.reply});
-                        
+                        } else {
+                            this.messages.push(data.reply);
+                        }
                     } catch (error) {
                         this.messages.push("Error while getting a response from the chatbot.");
                     }
-                },
-            
-                async choosePlaylist() {
-                    try {
-                        // Assuming the userMessage contains the playlist number
-                        const playlistNumber = parseInt(this.userMessage, 10) - 1;
-        
-                        // Assuming the playlists are stored in a variable named playlists
-                        const playlistId = this.playlists[playlistNumber].id;
-        
-                        const chatResponse = await fetch(`/chat/${playlistId}/${this.userMessage}`, {
-                            method: 'GET',
-                        });
-        
-                        const chatData = await chatResponse.json();
-                        this.messages.push({role: "assistant", content: chatData.response});
-                        this.messages.push({role: "assistant", content: `Video: ${chatData.video}`});
-                    } catch (error) {
-                        this.messages.push({role: "assistant", content: "Error while choosing a playlist."});
-                    }
                 }
-                };
+            };
         }
     </script>
 </body>

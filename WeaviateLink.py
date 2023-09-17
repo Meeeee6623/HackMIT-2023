@@ -92,9 +92,9 @@ class VectorDB:
 
         # batch add videos to db
         with self.db.batch(
-                batch_size=20,
-                num_workers=4,
-                dynamic=True,
+            batch_size=20,
+            num_workers=4,
+            dynamic=True,
         ) as batch:
             for video in video_list:
                 batch.add_data_object(
@@ -117,9 +117,9 @@ class VectorDB:
 
         # batch add topics to db
         with self.db.batch(
-                batch_size=20,
-                num_workers=4,
-                dynamic=True,
+            batch_size=20,
+            num_workers=4,
+            dynamic=True,
         ) as batch:
             for topic in topics:
                 batch.add_data_object(
@@ -169,9 +169,9 @@ class VectorDB:
 
         query = self.db.query.get(
             "Video",
-            ["description", "videoID", "title"],
+            ["videoID"],
         )
-        print(f"Query: {query}")
+        print(f"Query: {query.build()}")
 
         results = (
             query.with_where(where_filter)

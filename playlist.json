@@ -1,0 +1,41 @@
+{
+  "class": "Playlist",
+  "properties": [
+    {
+      "name": "title",
+      "dataType": [
+        "text"
+      ],
+      "description": "the title of the playlist",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": false
+        }
+      }
+    },
+    {
+      "name": "description",
+      "dataType": [
+        "text"
+      ],
+      "description": "a description of the topics covered by the playlist",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": false
+        }
+      }
+    },
+    {
+      "name": "playlistID",
+      "dataType": [
+        "text"
+      ],
+      "description": "the ID of the playlist",
+      "moduleConfig": {
+        "text2vec-openai": {
+          "skip": true
+        }
+      }
+    }
+  ]
+}

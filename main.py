@@ -41,7 +41,7 @@ def app():
     from OpenAILink import OpenAI_Connector
     from YouTubeLink import YoutubeConnector
 
-    db = VectorDB("http://44.209.9.231:8080", youtube_key=os.environ["YOUTUBE_API_KEY"])
+    db = VectorDB("http://44.209.9.231:8080")
     openai = OpenAI_Connector(os.environ["OPENAI_API_KEY"])
     yt = YoutubeConnector(os.environ["YOUTUBE_API_KEY"])
 
@@ -76,7 +76,6 @@ def app():
         matches = re.findall(regex, response)
         if len(matches) > 0:
             tone = matches[0]
-
         return {
             "reply": response,
             "yt_query": yt_query,
@@ -85,23 +84,18 @@ def app():
 
     # This endpoint is responsible for searching for playlists.
     # It is only called from JavaScript if the YouTube query is not empty.
-    @web_app.get("/search/{user_query}/{yt_query}")  # returns dict of playlists
-    async def search(user_query: str, yt_query: str):
+    @web_app.get("/search/{yt_query}")  # returns dict of playlists
+    async def search(yt_query: str):
         # check if information already in DB
         playlistID = None  # Assign a default value to playlistID
 
-        check_result = db.check_playlist(user_query, certainty=0.8)
-        if check_result:
-            playlistID = check_result["playlistID"]
-        else:
-            # search yt
-            # yt_search = openai.get_yt_search(user_query, conversation)  # text search string
-            playlist_list = yt.search_playlists(
-                yt_query
-            )  # format: list of dicts with keys: id, title, description, thumbnail
+        # search yt
+        # yt_search = openai.get_yt_search(user_query, conversation)  # text search string
+        playlist_list = yt.search_playlists(
+            yt_query
+        )  # format: list of dicts with keys: id, title, description, thumbnail
         return {
             "playlists": playlist_list,
-            "id": playlistID,
         }  # js side should display playlists  and pass the playlist that is clicked to the search function if id is empty, else dont display the playlist just store the id and call the chat funciton wiht the id
 
     @web_app.get("/scrape/{playlist_ID_input}/{playlist_list}")
@@ -123,13 +117,15 @@ def app():
             raise HTTPException(status_code=404, detail="Playlist not found")
 
         # Get playlist description and add to database
-        description = openai.get_playlist_search(
-            playlist["title"], playlist["description"]
-        )
-        db.add_playlist(playlist_ID_input, playlist["title"], description)
+        # description = openai.get_playlist_search(
+        #     playlist["title"], playlist["description"]
+        # )
+        # db.add_playlist(playlist_ID_input, playlist["title"], description)
 
         # Get video IDs for the playlist
         video_list = yt.get_videos(playlist_ID_input)
+
+        print(video_list)
 
         # Chunk each video into topics
         for video in video_list:
@@ -137,7 +133,7 @@ def app():
                 video["id"]
             )  # transcript has keys: text, start, duration
             topics, video["description"] = openai.get_video_topics(transcript)
-
+            print(f"Video Topics: {topics}")
             # Add topics to DB
             db.add_topics(topics, video["id"])
 
@@ -147,6 +143,8 @@ def app():
     @web_app.get("/chat/{playlistID}/{user_query}")
     async def chat(playlistID: str, user_query: str):
         # search within playlist
+        print(f"Playlist ID: {playlistID}")
+        print(f"User query: {user_query}")
         videoID = db.search_videos(playlistID, user_query)["videoID"]
 
         # search within video
