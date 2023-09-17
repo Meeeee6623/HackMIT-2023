@@ -7,7 +7,7 @@ import re
 
 
 image = modal.Image.debian_slim().pip_install(
-    "youtube_transcript_api", "weaviate-client", "google-api-python-client"
+    "youtube_transcript_api", "weaviate-client", "google-api-python-client", "openai"
 )
 
 stub = modal.Stub("yt-search")
@@ -28,6 +28,7 @@ stub = modal.Stub("yt-search")
             remote_path="/root/frontend",
         ),
     ],
+    secret=modal.Secret.from_name("youtube"),
 )
 @asgi_app()
 def app():
@@ -40,7 +41,7 @@ def app():
     from OpenAILink import OpenAI_Connector
     from YouTubeLink import YoutubeConnector
 
-    db = VectorDB("http://44.209.9.231:8080")
+    db = VectorDB("http://44.209.9.231:8080", youtube_key=os.environ["YOUTUBE_API_KEY"])
     openai = OpenAI_Connector(os.environ["OPENAI_API_KEY"])
     yt = YoutubeConnector(os.environ["YOUTUBE_API_KEY"])
 

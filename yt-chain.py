@@ -4,7 +4,7 @@ from WeaviateLink import VectorDB
 from OpenAILink import OpenAI_Connector
 from YouTubeLink import YoutubeConnector
 
-db = VectorDB("http://44.209.9.231:8080")
+db = VectorDB("http://44.209.9.231:8080", youtube_key=os.environ["YOUTUBE_API_KEY"])
 openai = OpenAI_Connector(os.environ["OPENAI_API_KEY"])
 yt = YoutubeConnector(os.environ["YOUTUBE_API_KEY"])
 

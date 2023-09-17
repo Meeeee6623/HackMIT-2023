@@ -20,15 +20,15 @@ class VectorDB:
         # check if yt classes exist
 
         if not self.db.schema.exists("playlist"):
-            with open("./classes/playlist.json", "r") as f:
+            with open("/classes/playlist.json", "r") as f:
                 playlist = json.load(f)
             self.db.schema.create_class(playlist)
         if not self.db.schema.exists("video"):
-            with open("./classes/video.json", "r") as f:
+            with open("/classes/video.json", "r") as f:
                 video = json.load(f)
             self.db.schema.create_class(video)
         if not self.db.schema.exists("topic"):
-            with open("./classes/topic.json", "r") as f:
+            with open("/classes/topic.json", "r") as f:
                 topic = json.load(f)
             self.db.schema.create_class(topic)
 
@@ -58,17 +58,17 @@ class VectorDB:
 
         # batch add videos to db
         with self.db.batch(
-                batch_size=20,
-                num_workers=4,
-                dynamic=True,
+            batch_size=20,
+            num_workers=4,
+            dynamic=True,
         ) as batch:
             for video in video_list:
                 batch.add_data_object(
                     data_object={
-                        "title": video['title'],
-                        "description": video['description'],
+                        "title": video["title"],
+                        "description": video["description"],
                         "playlistID": playlist_id,
-                        "videoID": video['id'],
+                        "videoID": video["id"],
                     },
                     class_name="video",
                 )
@@ -90,10 +90,9 @@ class VectorDB:
             for topic in topics:
                 batch.add_data_object(
                     data_object={
-
-                        "topic": topic['topic'],
-                        "text": topic['text'],
-                        "startTime": topic['startTime'],
+                        "topic": topic["topic"],
+                        "text": topic["text"],
+                        "startTime": topic["startTime"],
                         "videoID": videoID,
                     },
                     class_name="topic",
@@ -134,11 +133,13 @@ class VectorDB:
             "valueString": playlistID,
         }
 
-        results = (self.db.data_object
-        .get(class_name="video", field_names=["title", "description", "videoID"])
-        .with_where(where_filter)
-        .with_near_text(near_text)
-        .do()["data"]["Get"]['video']
+        results = (
+            self.db.data_object.get(
+                class_name="video", field_names=["title", "description", "videoID"]
+            )
+            .with_where(where_filter)
+            .with_near_text(near_text)
+            .do()["data"]["Get"]["video"]
         )
         if len(results) > 0:
             return results[0]
@@ -160,11 +161,14 @@ class VectorDB:
             "operator": "Equal",
             "valueString": videoID,
         }
-        results = (self.db.data_object
-        .get(class_name="topic", field_names=["topic", "startTime"])
-        .with_where(where_filter)
-        .with_near_text(near_text)
-        .do()["data"]["Get"]["topic"])
+        results = (
+            self.db.data_object.get(
+                class_name="topic", field_names=["topic", "startTime"]
+            )
+            .with_where(where_filter)
+            .with_near_text(near_text)
+            .do()["data"]["Get"]["topic"]
+        )
         if len(results) > 0:
             return results[0]
         else:

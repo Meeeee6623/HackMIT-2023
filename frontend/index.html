@@ -16,17 +16,6 @@
         <h1 class="text-2xl font-semibold mb-4">YouTube Playlist Learner</h1>
 
         <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="youtube-playlist">
-                Paste YouTube Playlist Link:
-            </label>
-            <input x-model="playlistUrl" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" id="youtube-playlist" type="text" placeholder="YouTube Playlist URL">
-        </div>
-
-        <button @click="trainChatbot()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4">
-            Train Chatbot
-        </button>
-
-        <div class="mb-4">
             <label class="block text-gray-700 text-sm font-bold mb-2" for="message">
                 Message the Chatbot:
             </label>
@@ -47,28 +36,38 @@
     <script>
         function chatbotState() {
             return {
-                playlistUrl: "",
                 userMessage: "",
                 messages: [],
-                async trainChatbot() {
-                    try {
-                        const response = await fetch(`/train/${this.playlistUrl}`, {
-                            method: 'GET',
-                        });
-                        const data = await response.json();
-                        this.messages.push(data.message);
-                    } catch (error) {
-                        this.messages.push("Error while training the chatbot.");
-                    }
-                },
                 async sendMessage() {
                     try {
-                        const response = await fetch(`/chat/${this.userMessage}`, {
+                        const response = await fetch(`/ask/${this.userMessage}`, {
                             method: 'GET',
                         });
                         const data = await response.json();
                         this.messages.push(this.userMessage);
                         this.messages.push(data.reply);
+                
+                        if (data.yt_query !== "") {
+                            const searchResponse = await fetch(`/search/${this.userMessage}/${data.yt_query}`, {
+                                method: 'GET',
+                            });
+                            const searchData = await searchResponse.json();
+                
+                            if (searchData.id === "") {
+                                const scrapeResponse = await fetch(`/scrape/${searchData.id}/${JSON.stringify(searchData.playlists)}`, {
+                                    method: 'GET',
+                                });
+                                const scrapeData = await scrapeResponse.json();
+                                this.messages.push(scrapeData.message);
+                            } else {
+                                const chatResponse = await fetch(`/chat/${searchData.id}/${this.userMessage}`, {
+                                    method: 'GET',
+                                });
+                                const chatData = await chatResponse.json();
+                                this.messages.push(chatData.response);
+                                this.messages.push(`Video: ${chatData.video}`);
+                            }
+                        }
                     } catch (error) {
                         this.messages.push("Error while getting a response from the chatbot.");
                     }
