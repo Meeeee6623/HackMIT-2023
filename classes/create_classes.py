@@ -14,6 +14,16 @@ playlist_schema = {
     "class": "playlist",
     "properties": [
         {
+            "name": "title",
+            "dataType": ["text"],
+            "description": "the title of the playlist",
+            "moduleConfig": {
+                "text2vec-openai": {
+                    "skip": False,
+                }
+            }
+        },
+        {
             "name": "description",
             "dataType": ["text"],
             "description": "a description of the topics covered by the playlist",
@@ -39,6 +49,16 @@ playlist_schema = {
 video_schema = {
     "class": "video",
     "properties": [
+        {
+            "name": "title",
+            "dataType": ["text"],
+            "description": "the title of the video",
+            "moduleConfig": {
+                "text2vec-openai": {
+                    "skip": False,
+                }
+            }
+        },
         {
             "name": "description",
             "dataType": ["text"],
