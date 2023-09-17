@@ -4,7 +4,7 @@ import weaviate
 
 
 class VectorDB:
-    def __init__(self, weaviate_url, weaviate_key="key", youtube_key=None):
+    def __init__(self, weaviate_url, weaviate_key="key"):
         try:
             if weaviate_key is None:
                 self.db = weaviate.Client(
