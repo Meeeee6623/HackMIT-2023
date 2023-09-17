@@ -32,7 +32,6 @@
             </template>
         </div>
     </div>
-
     <script>
         function chatbotState() {
             return {
@@ -44,7 +43,7 @@
                             method: 'GET',
                         });
                         const data = await response.json();
-                        this.messages.push(this.userMessage);
+                        //this.messages.push(this.userMessage);
                         this.messages.push(data.reply);
                 
                         if (data.yt_query !== "") {
@@ -67,6 +66,8 @@
                                 this.messages.push(chatData.response);
                                 this.messages.push(`Video: ${chatData.video}`);
                             }
+                        } else {
+                            this.messages.push(data.reply);
                         }
                     } catch (error) {
                         this.messages.push("Error while getting a response from the chatbot.");
