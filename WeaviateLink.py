@@ -15,11 +15,10 @@ class VectorDB:
         else:
             self.db = weaviate.Client(
                 url=weaviate_url,
-                auth_client_secret=weaviate.AuthApiKey(
-                    api_key=weaviate_key
-                ),
+                auth_client_secret=weaviate.AuthApiKey(api_key=weaviate_key),
             )
         # check if yt classes exist
+
         if not self.db.schema.exists("playlist"):
             with open("./classes/playlist.json", "r") as f:
                 playlist = json.load(f)
@@ -56,6 +55,7 @@ class VectorDB:
         :param playlist_id: id of the playlist that the videos are from
         :return:
         """
+
         # batch add videos to db
         with self.db.batch(
                 batch_size=20,
@@ -80,15 +80,17 @@ class VectorDB:
         :param videoID: ID of the video that the topics are from
         :return:
         """
+
         # batch add topics to db
         with self.db.batch(
-                batch_size=20,
-                num_workers=4,
-                dynamic=True,
+            batch_size=20,
+            num_workers=4,
+            dynamic=True,
         ) as batch:
             for topic in topics:
                 batch.add_data_object(
                     data_object={
+
                         "topic": topic['topic'],
                         "text": topic['text'],
                         "startTime": topic['startTime'],
@@ -106,6 +108,7 @@ class VectorDB:
         :param description: playlist description
         :return:
         """
+
         self.db.data_object.create(
             data_object={
                 "title": title,
@@ -130,6 +133,7 @@ class VectorDB:
             "operator": "Equal",
             "valueString": playlistID,
         }
+
         results = (self.db.data_object
         .get(class_name="video", field_names=["title", "description", "videoID"])
         .with_where(where_filter)
