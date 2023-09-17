@@ -167,14 +167,22 @@ class VectorDB:
             "valueString": playlistID,
         }
 
-        results = (
-            self.db.query.get(
-                class_name="video", properties=["title", "description", "videoID"]
-            )
-            .with_where(where_filter)
-            .with_near_text(near_text)
-            .do()["data"]["Get"]["video"]
+        query = self.db.query.get(
+            class_name="Video",
+            properties=[
+                "description",
+                "videoID",
+            ],  # todo had to remove title here bc it didnt exist
         )
+        print(f"Query: {query}")
+
+        results = (
+            query.with_where(where_filter)
+            .with_near_text(near_text)
+            .do()["data"]["Get"]["Video"]
+        )
+        print(results)
+        # rest of your code...
         if len(results) > 0:
             return results[0]
         else:

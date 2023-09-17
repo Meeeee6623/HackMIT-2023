@@ -1,5 +1,5 @@
 {
-  "class": "video",
+  "class": "Video",
   "properties": [
     {
       "name": "description",

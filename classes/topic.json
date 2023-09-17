@@ -1,5 +1,5 @@
 {
-  "class": "topic",
+  "class": "Topic",
   "properties": [
     {
       "name": "topic",

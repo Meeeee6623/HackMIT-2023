@@ -1,5 +1,5 @@
 {
-  "class": "playlist",
+  "class": "Playlist",
   "properties": [
     {
       "name": "title",
