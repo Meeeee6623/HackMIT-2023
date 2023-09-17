@@ -27,8 +27,12 @@
         </button>
 
         <div class="border-t pt-4" id="chat-box">
-            <template x-for="message in messages">
-                <p x-text="message"></p>
+            <template x-for="(message, index) in messages">
+                <div :class="{'text-right': index % 2 === 0, 'text-left': index % 2 !== 0}">
+                    <div class="inline-block bg-blue-500 text-white rounded-lg px-4 py-2 mb-4">
+                        <p x-text="message"></p>
+                    </div>
+                </div>
             </template>
         </div>
     </div>
@@ -43,9 +47,8 @@
                             method: 'GET',
                         });
                         const data = await response.json();
-                        //this.messages.push(this.userMessage);
-                        this.messages.push(data.reply);
-                
+                        this.messages.push(this.userMessage);
+                        
                         if (data.yt_query !== "") {
                             const searchResponse = await fetch(`/search/${this.userMessage}/${data.yt_query}`, {
                                 method: 'GET',
