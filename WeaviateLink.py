@@ -92,9 +92,9 @@ class VectorDB:
 
         # batch add videos to db
         with self.db.batch(
-            batch_size=20,
-            num_workers=4,
-            dynamic=True,
+                batch_size=20,
+                num_workers=4,
+                dynamic=True,
         ) as batch:
             for video in video_list:
                 batch.add_data_object(
@@ -117,9 +117,9 @@ class VectorDB:
 
         # batch add topics to db
         with self.db.batch(
-            batch_size=20,
-            num_workers=4,
-            dynamic=True,
+                batch_size=20,
+                num_workers=4,
+                dynamic=True,
         ) as batch:
             for topic in topics:
                 batch.add_data_object(
@@ -168,11 +168,8 @@ class VectorDB:
         }
 
         query = self.db.query.get(
-            class_name="Video",
-            properties=[
-                "description",
-                "videoID",
-            ],  # todo had to remove title here bc it didnt exist
+            "Video",
+            ["description", "videoID", "title"],  # todo had to remove title here bc it didnt exist
         )
         print(f"Query: {query}")
 
@@ -204,7 +201,7 @@ class VectorDB:
             "valueString": videoID,
         }
         results = (
-            self.db.query.get(class_name="topic", properties=["topic", "startTime"])
+            self.db.query.get("Topic", ["topic", "startTime"])
             .with_where(where_filter)
             .with_near_text(near_text)
             .do()["data"]["Get"]["topic"]

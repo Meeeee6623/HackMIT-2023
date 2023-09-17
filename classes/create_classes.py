@@ -11,7 +11,7 @@ default_schema = {
 }
 
 playlist_schema = {
-    "class": "playlist",
+    "class": "Playlist",
     "properties": [
         {
             "name": "title",
@@ -47,7 +47,7 @@ playlist_schema = {
 }
 
 video_schema = {
-    "class": "video",
+    "class": "Video",
     "properties": [
         {
             "name": "title",
@@ -93,7 +93,7 @@ video_schema = {
 }
 
 topic_schema = {
-    "class": "topic",
+    "class": "Topic",
     "properties": [
         {
             "name": "topic",
