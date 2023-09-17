@@ -101,6 +101,11 @@ topic_schema = {
             "description": "the topic of the portion of the video",
         },
         {
+            "name": "text",
+            "dataType": ["text"],
+            "description": "the text of the portion of the video relating to the topic",
+        },
+        {
             "name": "videoID",
             "dataType": ["text"],
             "description": "the ID of the video",
