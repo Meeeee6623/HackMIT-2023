@@ -34,7 +34,7 @@ class VectorDB:
             "certainty": certainty,
         }
         results = (
-            self.db.query.get(class_name="playlist", field_names=["playlistID"])
+            self.db.query.get(class_name="playlist", properties=["playlistID"])
             .with_near_text(near_text)
             .with_additional("id")
             .do()["data"]["Get"]["playlist"]
@@ -131,7 +131,7 @@ class VectorDB:
 
         results = (
             self.db.query.get(
-                class_name="video", field_names=["title", "description", "videoID"]
+                class_name="video", properties=["title", "description", "videoID"]
             )
             .with_where(where_filter)
             .with_near_text(near_text)
@@ -159,7 +159,7 @@ class VectorDB:
         }
         results = (
             self.db.query.get(
-                class_name="topic", field_names=["topic", "startTime"]
+                class_name="topic", properties=["topic", "startTime"]
             )
             .with_where(where_filter)
             .with_near_text(near_text)
