@@ -2,10 +2,6 @@ import json
 
 import weaviate
 
-from googleapiclient.discovery import build
-from youtube_transcript_api import YouTubeTranscriptApi
-
-
 class VectorDB:
     def __init__(self, weaviate_url, weaviate_key=None, youtube_key=None):
         if weaviate_key is None:
@@ -32,8 +28,6 @@ class VectorDB:
                 topic = json.load(f)
             self.db.schema.create_class(topic)
 
-        self.youtube = build("youtube", "v3", developerKey=youtube_key)
-
     def check_playlist(self, query, certainty):
         near_text = {
             "concepts": [query],
@@ -42,6 +36,7 @@ class VectorDB:
         results = (
             self.db.data_object.get(class_name="playlist")
             .with_near_text(near_text)
+            .with_additional("id")
             .do()["data"]["Get"]["playlist"]
         )
         if len(results) > 0:
@@ -59,9 +54,9 @@ class VectorDB:
 
         # batch add videos to db
         with self.db.batch(
-            batch_size=20,
-            num_workers=4,
-            dynamic=True,
+                batch_size=20,
+                num_workers=4,
+                dynamic=True,
         ) as batch:
             for video in video_list:
                 batch.add_data_object(
@@ -84,9 +79,9 @@ class VectorDB:
 
         # batch add topics to db
         with self.db.batch(
-            batch_size=20,
-            num_workers=4,
-            dynamic=True,
+                batch_size=20,
+                num_workers=4,
+                dynamic=True,
         ) as batch:
             for topic in topics:
                 batch.add_data_object(
