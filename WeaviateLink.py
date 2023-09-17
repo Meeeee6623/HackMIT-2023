@@ -104,7 +104,7 @@ class VectorDB:
                         "playlistID": playlist_id,
                         "videoID": video["id"],
                     },
-                    class_name="video",
+                    class_name="Video",
                 )
 
     def add_topics(self, topics, videoID):
@@ -129,7 +129,7 @@ class VectorDB:
                         "startTime": topic["startTime"],
                         "videoID": videoID,
                     },
-                    class_name="topic",
+                    class_name="Topic",
                 )
         pass
 
@@ -169,7 +169,7 @@ class VectorDB:
 
         query = self.db.query.get(
             "Video",
-            ["description", "videoID", "title"],  # todo had to remove title here bc it didnt exist
+            ["description", "videoID", "title"],
         )
         print(f"Query: {query}")
 
