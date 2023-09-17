@@ -26,10 +26,10 @@
             Send Message
         </button>
 
-        <div class="border-t pt-4" id="chat-box">
+        <div class="border-t pt-4 bg-gradient-to-r from-green-400 to-blue-500" id="chat-box">
             <template x-for="(message, index) in messages">
                 <div :class="{'text-right': index % 2 === 0, 'text-left': index % 2 !== 0}">
-                    <div class="inline-block bg-blue-500 text-white rounded-lg px-4 py-2 mb-4">
+                    <div class="inline-block bg-white text-gray-800 rounded-lg px-4 py-2 mb-4 shadow-md prose prose-sm">
                         <p x-text="message"></p>
                     </div>
                 </div>
