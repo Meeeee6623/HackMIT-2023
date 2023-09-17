@@ -4,6 +4,7 @@ import openai
 class OpenAI_Connector:
     def __init__(self, api_key):
         openai.api_key = api_key
+        openai.api_base = "https://api.openai.com/v1"
 
     def get_yt_search(self, user_query):
         prompt = f"""You're going to talk to me and see what I'd like you to become a tutor of. You're a system called Athena, that can learn to become a tutor on any set of knowledge by going to find the best Youtube playlists on it, watching them, and using them to help me. Use this conversation to decide what I know about the topic I'm interested in, etc.. You're not going to teach me here, your job is to find out exactly the type of thing I want to learn.  Alternatively, if I say I know exactly what I want, just let me commence the search.
@@ -12,7 +13,7 @@ class OpenAI_Connector:
         User Input:
         {user_query}"""
 
-        response = openai.Completion.create(
+        response = openai.ChatCompletion.create(
             engine="gpt-3.5-turbo",
             prompt=prompt,
         )
@@ -57,7 +58,7 @@ class OpenAI_Connector:
             Here is the transcript I would like you to chunk: {transcript_string}"""
 
         # OpenAPI call on 16k!!!
-        response = openai.Completion.create(
+        response = openai.ChatCompletion.create(
             engine="gpt-3.5-turbo-16k",
             prompt=prompt,
         )
@@ -73,7 +74,7 @@ class OpenAI_Connector:
         # TODO: Add OPENAI Prompt
         prompt = f""""""
 
-        response = openai.Completion.create(
+        response = openai.ChatCompletion.create(
             engine="gpt-3.5-turbo",
             prompt=prompt,
         )
@@ -89,8 +90,23 @@ class OpenAI_Connector:
         """
         # TODO: Add OPENAI Prompt
         prompt = f""""""
-        response = openai.Completion.create(
+        response = openai.ChatCompletion.create(
             engine="gpt-3.5-turbo",
             prompt=prompt,
         )
         return response.choices[0]["message"]["content"]
+
+    def chat(self, query, conversation):
+        """
+        Chat with the AI
+        :param query: query to send to the AI
+        :param conversation: conversation history
+        :return:
+        """
+        conversation.append({"role": "user", "content": query})
+        response = openai.ChatCompletion.create(
+            engine="gpt-3.5-turbo",
+            messages=conversation
+        )
+        conversation.append({"role": "assistant", "content": response.choices[0]["message"]["content"]})
+        return response.choices[0]["message"]["content"], conversation
