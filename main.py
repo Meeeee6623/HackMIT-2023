@@ -45,6 +45,11 @@ def app():
     openai = OpenAI_Connector(os.environ["OPENAI_API_KEY"])
     yt = YoutubeConnector(os.environ["YOUTUBE_API_KEY"])
 
+    vector_db = VectorDB(weaviate_url="http://44.209.9.231:8080", weaviate_key="key")
+
+    # Print existing classes
+    vector_db.print_existing_classes()
+
     web_app = FastAPI()
 
     @web_app.get("/ask/{query}/{conversation}}")
@@ -83,10 +88,12 @@ def app():
     @web_app.get("/search/{user_query}/{yt_query}")  # returns dict of playlists
     async def search(user_query: str, yt_query: str):
         # check if information already in DB
-        playlistID = db.check_playlist(user_query, certainty=0.8)[
-            "playlistID"
-        ]  # might need gpt call to modify text/search?
-        if not playlistID:
+        playlistID = None  # Assign a default value to playlistID
+
+        check_result = db.check_playlist(user_query, certainty=0.8)
+        if check_result:
+            playlistID = check_result["playlistID"]
+        else:
             # search yt
             # yt_search = openai.get_yt_search(user_query, conversation)  # text search string
             playlist_list = yt.search_playlists(
